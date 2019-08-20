@@ -13,8 +13,10 @@ FigureNumber=fig_number;
         % figure_handle.Position
         
         [MatlabPPT] = RefreshPPT();
-        Obj = Obj_From_Placeholder(['figure',num2str(FigureNumber)],MatlabPPT);
-        if(isempty(Obj));return;end
+        Objs = Obj_From_Placeholder(['figure',num2str(FigureNumber)],MatlabPPT);
+        if(isempty(Objs));return;end
+        for i=1:numel(Objs)
+            Obj=Objs{i};
         new_height = Obj.Height./Obj.Width * figure_handle.Position(3);
         figure_handle.Position(2) = figure_handle.Position(2)  - (new_height - figure_handle.Position(4));
         figure_handle.Position(4) = new_height;
@@ -26,4 +28,5 @@ export_fig(figure_handle,[Path,'temp.png'],'-dpng',['-m',mresolution],'-transpar
 set(Ax,'color',Backup_color);
 %         print(figure_handle,[Path,'temp.jpg'],'-dpng',['-r',resolution]);
         ReplaceImage(Obj,[Path,'temp.png']);
+        end
 end
