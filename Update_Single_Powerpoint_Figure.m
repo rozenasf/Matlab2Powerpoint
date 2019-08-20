@@ -3,6 +3,8 @@ function Update_Single_Powerpoint_Figure(fig_number)
 FigureNumber=fig_number;
 %         resolution='300';
         mresolution='2';
+        SizeFactor=2;
+        
         Path = [pwd,'\'];
         
         handles=findall(0,'type','figure');
@@ -25,8 +27,8 @@ FigureNumber=fig_number;
 %         figure_handle.Position(4) = new_height;
 
         %change both hight and width
-        new_height = Obj.Height;
-        new_width = Obj.Width;
+        new_height = Obj.Height*SizeFactor;
+        new_width = Obj.Width*SizeFactor;
         figure_handle.Position(2) = figure_handle.Position(2)  - (new_height - figure_handle.Position(4));
         figure_handle.Position(1) = figure_handle.Position(1)  - (new_width - figure_handle.Position(3));
         figure_handle.Position(4) = new_height;
