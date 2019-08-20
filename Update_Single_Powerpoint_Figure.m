@@ -17,9 +17,21 @@ FigureNumber=fig_number;
         if(isempty(Objs));return;end
         for i=1:numel(Objs)
             Obj=Objs{i};
-        new_height = Obj.Height./Obj.Width * figure_handle.Position(3);
+        
+        %Change only hight    
+        
+%         new_height = Obj.Height./Obj.Width * figure_handle.Position(3);
+%         figure_handle.Position(2) = figure_handle.Position(2)  - (new_height - figure_handle.Position(4));
+%         figure_handle.Position(4) = new_height;
+
+        %change both hight and width
+        new_height = Obj.Height;
+        new_width = Obj.Width;
         figure_handle.Position(2) = figure_handle.Position(2)  - (new_height - figure_handle.Position(4));
+        figure_handle.Position(1) = figure_handle.Position(1)  - (new_width - figure_handle.Position(3));
         figure_handle.Position(4) = new_height;
+        figure_handle.Position(3) = new_width;
+        
         Ax = figure_handle.CurrentAxes;
         Backup_color = get(Ax,'color');
         set(Ax,'color','none');
