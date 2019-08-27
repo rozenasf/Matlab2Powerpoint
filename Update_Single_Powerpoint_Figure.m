@@ -3,7 +3,7 @@ function Update_Single_Powerpoint_Figure(fig_number)
 FigureNumber=fig_number;
 %         resolution='300';
         mresolution='2';
-        SizeFactor=2;
+            SizeFactor=2;
         
         Path = [pwd,'\'];
         
@@ -11,7 +11,9 @@ FigureNumber=fig_number;
         ind = find([handles.Number] == FigureNumber);
         if(isempty(ind)); return ;end
         figure_handle = handles(ind);
-        
+        if(isfield(figure_handle.UserData,'Scale'))
+            SizeFactor=figure_handle.UserData.Scale;
+        end
         % figure_handle.Position
         
         [MatlabPPT] = RefreshPPT();
@@ -33,7 +35,10 @@ FigureNumber=fig_number;
         figure_handle.Position(1) = figure_handle.Position(1)  - (new_width - figure_handle.Position(3));
         figure_handle.Position(4) = new_height;
         figure_handle.Position(3) = new_width;
-        
+        drawnow;
+        if(abs(figure_handle.Position(3)-new_width)>1e-3 || abs(figure_handle.Position(4)-new_height)>1e-3)
+            warning('The figure scaled is too small\large. change scaling by: Fx=gcf;Fx.UserData.Scale=#');
+        end
         Ax = figure_handle.CurrentAxes;
         Backup_color = get(Ax,'color');
         set(Ax,'color','none');
