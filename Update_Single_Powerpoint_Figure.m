@@ -43,7 +43,7 @@ FigureNumber=fig_number;
         Backup_color = get(Ax,'color');
         set(Ax,'color','none');
 % export_fig(figure_handle,[Path,'temp.png'],'-dpng',['-r',resolution],'-transparent');
-export_fig(figure_handle,[Path,'temp.png'],'-dpng',['-m',mresolution],'-transparent');
+export_fig(figure_handle,[Path,'temp.png'],'-nocrop','-dpng',['-m',mresolution],'-transparent');
 set(Ax,'color',Backup_color);
 %         print(figure_handle,[Path,'temp.jpg'],'-dpng',['-r',resolution]);
         ReplaceImage(Obj,[Path,'temp.png']);
