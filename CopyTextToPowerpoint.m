@@ -1,5 +1,5 @@
 function U = CopyTextToPowerpoint(Matlab_Obj,Ax,Powerpoint_Obj)
-    [MatlabPPT] = RefreshPPT();
+    
     [X_Location,Y_Location] = Matlab2Powerpoint_Position(Matlab_Obj,Ax,Powerpoint_Obj);
 
     U = AddTextToSlide(Powerpoint_Obj.Parent,struct(...
@@ -11,6 +11,7 @@ function U = CopyTextToPowerpoint(Matlab_Obj,Ax,Powerpoint_Obj)
     % U.Width = U.TextFrame.TextRange.BoundWidth+10;
     U.Left = U.Left - U.Width/2;
     U.Top = U.Top - U.Height/2;
+%     U.Top = U.Top - U.TextFrame.TextRange.BoundWidth/2;
      U.Rotation = - Matlab_Obj.Rotation;
     
     
