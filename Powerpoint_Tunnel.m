@@ -31,7 +31,7 @@ classdef Powerpoint_Tunnel < handle
                 'Line',struct('Color',[0,0,0],'Weight',1) ...
                 ,'Box',struct('Color',[0,0,0],'Weight',3) ...
                 ,'Text',struct('Color',[0,0,0],'FontSize',24,'FontName','Times New Roman') ...
-                ,'Ticks',struct('Color',[0,0,1],'Weight',1) ...
+                ,'Ticks',struct('Color',[0.5,0.5,0.5],'Weight',3,'Length',12) ...
                 );
             obj.Hiden_Objects={};
         end
@@ -151,10 +151,12 @@ classdef Powerpoint_Tunnel < handle
         end
         
         
-        function Line = DrawLine(obj,x1,y1,x2,y2,Options)
+        function Line = DrawLine(obj,x1,y1,x2,y2,Options,Offset)
+           X2_Moved = obj.Ax2PP_x(x2);Y2_Moved = obj.Ax2PP_y(y2);
+           if(exist('Offset','var'));X2_Moved=X2_Moved+Offset(1);Y2_Moved=Y2_Moved+Offset(2);end
            Line = obj.Slide.Shapes.AddLine(...
                obj.Ax2PP_x(x1),obj.Ax2PP_y(y1),...
-               obj.Ax2PP_x(x2),obj.Ax2PP_y(y2));
+               X2_Moved,Y2_Moved);
            if(~exist('Options','var'));Options = obj.Options.Line;end
            
                Line.Line.Weight = Options.Weight;
@@ -199,7 +201,7 @@ classdef Powerpoint_Tunnel < handle
             TextBox.TextFrame.TextRange.Font.Name = Options.FontName;
             TextBox.TextFrame.TextRange.Font.Size = Options.FontSize;
             TextBox.Rotation = Options.Rotation;
-            TextBox.TextFrame.TextRange.Font.Color.RGB = RGB_int(Options.Color * 0); %EVERYTHING BLACK!
+            TextBox.TextFrame.TextRange.Font.Color.RGB = RGB_int(Options.Color ); 
             if(isfield(Options,'Alignment'))
                 TextBox.TextFrame.TextRange.ParagraphFormat.Alignment = Options.Alignment;
             else
@@ -279,9 +281,20 @@ classdef Powerpoint_Tunnel < handle
            Xlist = Xlim ([1,2,2,1,1]);
            Ylist = Ylim ([1,1,2,2,1]);
            Box = {};
+
+           for x = obj.Ax.XAxis.TickValues
+               Box{end+1} = obj.DrawLine((x),(Ylim(1)),(x),(Ylim(1)),obj.Options.Ticks,[0,-obj.Options.Ticks.Length]);
+               Box{end+1} = obj.DrawLine((x),(Ylim(2)),(x),(Ylim(2)),obj.Options.Ticks,[0,obj.Options.Ticks.Length]);
+           end
+           for y = obj.Ax.YAxis.TickValues
+               Box{end+1} = obj.DrawLine((Xlim(1)),(y),(Xlim(1)),(y),obj.Options.Ticks,[obj.Options.Ticks.Length,0]);
+               Box{end+1} = obj.DrawLine((Xlim(2)),(y),(Xlim(2)),(y),obj.Options.Ticks,[-obj.Options.Ticks.Length,0]);
+           end
            for i=1:4
-              Box{i} = obj.DrawLine(Xlist(i),Ylist(i),Xlist(i+1),Ylist(i+1),obj.Options.Box);
-              Box{i}.name = [obj.name, '_BoxLine_', num2str(i)];
+               Box{end+1} = obj.DrawLine(Xlist(i),Ylist(i),Xlist(i+1),Ylist(i+1),obj.Options.Box);
+           end
+           for i=1:numel(Box)
+              Box{i}.name = [obj.name, '_BoxLine_', num2str(i)]; 
            end
         end
         
