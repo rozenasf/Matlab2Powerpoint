@@ -1,5 +1,6 @@
 function [X_Location,Y_Location] = Matlab2Powerpoint_Position(Matlab_Obj,Ax,Powerpoint_Obj)
-    Pos = Matlab_Obj.Position;
+    %Pos = Matlab_Obj.Position;
+    Pos=[0,0];
     Axes_Position = Ax.Position;
 
     MatlabSize = Matlab_Obj.Extent;

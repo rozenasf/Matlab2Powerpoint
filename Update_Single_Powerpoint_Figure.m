@@ -15,9 +15,9 @@ FigureNumber=fig_number;
             SizeFactor=figure_handle.UserData.Scale;
         end
         % figure_handle.Position
-        
-        [MatlabPPT] = RefreshPPT();
+               [MatlabPPT] = RefreshPPT();
         Objs = Obj_From_Placeholder(['figure',num2str(FigureNumber)],MatlabPPT);
+ 
         if(isempty(Objs));return;end
         for i=1:numel(Objs)
             Obj=Objs{i};
