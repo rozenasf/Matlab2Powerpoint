@@ -3,6 +3,8 @@ classdef Powerpoint_Tunnel < handle
         MatlabPPT
         Slide
         Frame
+        FrameAux
+        IsFrameGroup
         Fx
         Ax
         Frame_Size %[Left,Top,Width,Height]
@@ -24,7 +26,10 @@ classdef Powerpoint_Tunnel < handle
             obj.Ax = Ax;
             obj.Refresh;
             obj.name = ['figure',num2str(obj.Fx.Number)];
-            obj.Find_pp_Frame(obj.name);
+            [obj.Frame, obj.Slide] = obj.Find_pp_Frame(obj.name);
+            obj.IsFrameGroup = obj.IsGroup(obj.Frame);
+            [~,Names] = obj.GetAllShapes(obj.Slide);
+            obj.FrameAux = obj.FindPrefix(Names,['@',obj.name]);
             obj.SizeFactor = 1;
             obj.mresolution = 2;
             obj.Options = struct(...
@@ -32,6 +37,7 @@ classdef Powerpoint_Tunnel < handle
                 ,'Box',struct('Color',[0,0,0],'Weight',3) ...
                 ,'Text',struct('Color',[0,0,0],'FontSize',24,'FontName','Times New Roman') ...
                 ,'Ticks',struct('Color',[0.5,0.5,0.5],'Weight',3,'Length',12) ...
+                ,'Grid',struct('Color',[0.5,0.5,0.5],'Weight',1) ...
                 );
             obj.Hiden_Objects={};
         end
@@ -41,44 +47,54 @@ classdef Powerpoint_Tunnel < handle
             obj.MatlabPPT = RefreshPPT();
         end
         
+        
         function InjectFigure(obj)
            obj.Resize;
            obj.GeneratePNG;
            obj.InjectPNG;
         end
         
-        function Find_pp_Frame(obj,name)
+        
+        function [Frame,Slide] = Find_pp_Frame(obj,name)
             Frame_cell = Obj_From_Placeholder(name,obj.MatlabPPT);
-            obj.Frame = Frame_cell{1};
-            obj.Slide = obj.Frame.Parent;
+            if(numel(Frame_cell)>0)
+                Frame = Frame_cell{1};
+                Slide = Frame.Parent;
+            else
+                Frame=[];Slide=[];
+            end
         end
         
         
-        function BackupFigure(obj)
-            Backup_List.Ax = {'color','Position'};
-            Backup_List.Fx = {};
+        function BackupFigure(obj,Backup_List_Ax,Backup_List_Fx,Index)
+%             Backup_List.Ax = {'color','Position','YGrid','XGrid'};
+%             Backup_List.Fx = {};
+Backup_List.Ax = Backup_List_Ax;
+Backup_List.Fx = Backup_List_Fx;
             names = {'Ax','Fx'};
             for j=1:numel(names)
-                obj.(names{j}).UserData.Backup = struct();
+                obj.(names{j}).UserData.Backup{Index} = struct();
                 for i = 1:numel(Backup_List.(names{j}))
-                    obj.(names{j}).UserData.Backup.(Backup_List.(names{j}){i}) = ...
+                    obj.(names{j}).UserData.Backup{Index}.(Backup_List.(names{j}){i}) = ...
                         get(obj.(names{j}),(Backup_List.(names{j}){i}));
                 end
             end
         end
         
         
-        function RestoreFigure(obj)
+        function RestoreFigure(obj,Index)
             Types = {'Ax','Fx'};
             for j=1:numel(Types)
                 Type = Types{j};
-                Names = fieldnames(obj.(Type).UserData.Backup);
+                Names = fieldnames(obj.(Type).UserData.Backup{Index});
                 for i = 1:numel(Names)
                     set(obj.(Type),Names{i},...
-                        obj.(Type).UserData.Backup.(Names{i}));
+                        obj.(Type).UserData.Backup{Index}.(Names{i}));
                 end
             end
         end
+        
+        
         function RestorePosition(obj)
             set(obj.Ax,'Position',...
                 obj.Ax.UserData.Backup.Position);
@@ -117,10 +133,11 @@ classdef Powerpoint_Tunnel < handle
         
         
         function GeneratePNG(obj)
-            obj.BackupFigure;
+            Color = obj.Ax.Color;
             set(obj.Ax,'color','none');
             export_fig(obj.Fx,[obj.Path,'temp.png'],'-nocrop','-dpng',['-m',num2str(obj.mresolution)],'-transparent');
-            obj.RestoreFigure;
+%             obj.RestoreFigure;
+            set(obj.Ax,'color',Color);
         end
         
         
@@ -175,12 +192,13 @@ classdef Powerpoint_Tunnel < handle
                     Curves{i} = DrawCurve(obj, Object);
                     Curves{i}.Line.ForeColor.RGB = RGB_int(Object.Color);
                     Curves{i}.Line.Weight = Object.LineWidth*1.5;
-                    Curves{i}.name = [obj.name, '_Curve_', num2str(i)];
+                    Curves{i}.name = ['@', obj.name, '_Data_', num2str(i)];
                     obj.Hide(Object);
                     
                 end
             end
         end
+        
         
         function OutputCurve = DrawCurve(obj, LineObj)
             Curve=obj.Slide.Shapes.BuildFreeform('msoEditingCorner',obj.Ax2PP_x(LineObj.XData(1)),obj.Ax2PP_y(LineObj.YData(1)) );
@@ -192,6 +210,7 @@ classdef Powerpoint_Tunnel < handle
             OutputCurve = obj.Slide.Shapes.Item(obj.Slide.Shapes.Count);
 %             figure1.MatlabPPT{21,2}.Line.ForeColor.RGB=1
         end
+        
         
         function TextBox = DrawText(obj, Text, x, y, Options)
             if(~exist('Options','var'));Options = obj.Options.Text;end
@@ -221,7 +240,7 @@ classdef Powerpoint_Tunnel < handle
                 Pos(1),...
                 Pos(2),...
                 struct('FontSize',Object.FontSize*1.5,'Color',Object.Color,'FontName',Object.FontName,'Rotation',0) );
-            TitleBox.name = [obj.name,'_Title'];
+            TitleBox.name = ['@', obj.name,'_Labels_Title'];
             obj.Hide(Object);
             
         end
@@ -236,7 +255,7 @@ classdef Powerpoint_Tunnel < handle
                     Pos(1),...
                     Pos(2),...
                     struct('FontSize',Object.FontSize*1.5,'Color',Object.Color,'FontName',Object.FontName,'Rotation',-Object.Rotation) );
-                LabesBoxs{i}.name = [obj.name,'_',Names{i}];
+                LabesBoxs{i}.name = ['@', obj.name,'_Labels_',Names{i}];
                 obj.Hide(Object);
             end
             
@@ -256,7 +275,7 @@ classdef Powerpoint_Tunnel < handle
                     Pos(1),...
                     Pos(2),...
                     struct('FontSize',Object.FontSize*1.5,'Color',Object.Color,'FontName',Object.FontName,'Rotation',0) );
-                TickValues{end}.name = [obj.name,'_XTickValue_',num2str(i)];
+                TickValues{end}.name = ['@', obj.name,'_Axes_XTickValues_',num2str(i)];
                 TickValues{end}.Top = TickValues{end}.Top + TickValues{end}.TextFrame.TextRange.Font.Size/1.5;
             end
             obj.Hide(Object);
@@ -269,34 +288,133 @@ classdef Powerpoint_Tunnel < handle
                     Pos(2),...
                     struct('FontSize',Object.FontSize*1.5,'Color',Object.Color,'FontName',Object.FontName,'Rotation',0, ...
                 'Alignment','ppAlignRight') );
-                TickValues{end}.name = [obj.name,'_YTickValue_',num2str(i)];
+            
+                TickValues{end}.name = ['@', obj.name,'_Axes_YTickValues_',num2str(i)];
                 TickValues{end}.Left = TickValues{end}.Left - TickValues{end}.Width/2;
             end
             obj.Hide(Object);
         end
         
         
-        function Box = DrawBox(obj)
+        function [Box,Ticks,Grid] = DrawBox(obj)
            Xlim = xlim(obj.Ax);Ylim = ylim(obj.Ax);
            Xlist = Xlim ([1,2,2,1,1]);
            Ylist = Ylim ([1,1,2,2,1]);
-           Box = {};
-
+           Box = {};Ticks={};Grid={};
+            
            for x = obj.Ax.XAxis.TickValues
-               Box{end+1} = obj.DrawLine((x),(Ylim(1)),(x),(Ylim(1)),obj.Options.Ticks,[0,-obj.Options.Ticks.Length]);
-               Box{end+1} = obj.DrawLine((x),(Ylim(2)),(x),(Ylim(2)),obj.Options.Ticks,[0,obj.Options.Ticks.Length]);
+               Ticks{end+1} = obj.DrawLine((x),(Ylim(1)),(x),(Ylim(1)),obj.Options.Ticks,[0,-obj.Options.Ticks.Length]);
+               Ticks{end+1} = obj.DrawLine((x),(Ylim(2)),(x),(Ylim(2)),obj.Options.Ticks,[0,obj.Options.Ticks.Length]);
+               if(strcmp(obj.Ax.XGrid,'on'))
+                   Grid{end+1} = obj.DrawLine((x),(Ylim(1)),(x),(Ylim(2)),obj.Options.Grid);
+               end
            end
            for y = obj.Ax.YAxis.TickValues
-               Box{end+1} = obj.DrawLine((Xlim(1)),(y),(Xlim(1)),(y),obj.Options.Ticks,[obj.Options.Ticks.Length,0]);
-               Box{end+1} = obj.DrawLine((Xlim(2)),(y),(Xlim(2)),(y),obj.Options.Ticks,[-obj.Options.Ticks.Length,0]);
+               Ticks{end+1} = obj.DrawLine((Xlim(1)),(y),(Xlim(1)),(y),obj.Options.Ticks,[obj.Options.Ticks.Length,0]);
+               Ticks{end+1} = obj.DrawLine((Xlim(2)),(y),(Xlim(2)),(y),obj.Options.Ticks,[-obj.Options.Ticks.Length,0]);
+               if(strcmp(obj.Ax.YGrid,'on'))
+                   Grid{end+1} = obj.DrawLine((Xlim(1)),(y),(Xlim(2)),(y),obj.Options.Grid);
+               end
            end
+           
            for i=1:4
-               Box{end+1} = obj.DrawLine(Xlist(i),Ylist(i),Xlist(i+1),Ylist(i+1),obj.Options.Box);
+               Box{i} = obj.DrawLine(Xlist(i),Ylist(i),Xlist(i+1),Ylist(i+1),obj.Options.Box);
+               Box{i}.name = ['@', obj.name, '_Axes_Box_Line_', num2str(i)];
            end
-           for i=1:numel(Box)
-              Box{i}.name = [obj.name, '_BoxLine_', num2str(i)]; 
+
+           for i=1:numel(Ticks)
+              Ticks{i}.name = ['@', obj.name, '_Axes_Box_Tick_', num2str(i)]; 
+           end
+           
+           for i=1:numel(Grid)
+              Grid{i}.name = ['@', obj.name, '_Axes_Box_Grid_', num2str(i)]; 
+           end
+
+           if(strcmp(obj.Ax.XGrid,'on'));obj.Ax.XGrid='off';end
+           if(strcmp(obj.Ax.YGrid,'on'));obj.Ax.YGrid='off';end
+           
+        end
+        
+        
+        function GroupAll(obj,Prefix)
+            Depth = @(Names)cellfun(@(X)sum(X == '_'),Names);
+            
+            %Reindex Slide:
+            [Objects,Names] = obj.GetAllShapes(obj.Slide);
+            Names = obj.FindPrefix(Names,Prefix);%['@',obj.name]
+
+            while(1)
+                [MaxDepth,ind] = max(Depth(Names));
+                if(MaxDepth == 0);return;end
+                NewGroup = RemoveStage(Names{ind});
+                NewGroupNames = obj.FindPrefix(Names, NewGroup);
+                
+                obj.GroupByName(obj.Slide, NewGroupNames, NewGroup)
+                Names = setdiff(Names, NewGroupNames);
+                Names{end+1} = NewGroup;
+            end
+            
+            
+            function Cut_Name = RemoveStage(Name)
+               All_Split = strfind(Name,'_');
+               Cut_Name = Name(1:(All_Split(end)-1));
+            end
+            
+        end
+        
+        function out = IsGroup(obj,Object)
+           try
+               Object.GroupItems;
+               out = 1;
+           catch
+               out = 0;
            end
         end
+        
+        function OutNames = FindPrefix(~,Names, prefix)
+                OutNames={};
+                for j = 1:numel(Names)
+                    Name = Names{j};
+                    Find = strfind(Name,prefix);
+                    if ((numel(Find)==1) && Find ==1)
+                        OutNames{end+1} = Name;
+                    end
+                end
+            end
+        function [Objects, Names] = GetAllShapes(~, Parent)
+             Objects = {};Names={};
+             for i = 1:Parent.Shapes.Count
+                 Objects{i} = Parent.Shapes.Item(i);
+                 Names{i} = Objects{i}.name;
+             end
+        end
+        
+        function NewGroup = GroupByName(~, Parent ,Names, GroupName)
+            if( numel(Names) > 1 )
+                NewGroup = Parent.Shapes.Range(Names(:)).Group;
+                NewGroup.name = GroupName;
+            else
+                Parent.Shapes.Range(Names(:)).name = GroupName;
+            end
+        end
+%         
+%         function Ungroup(~, Parent, GroupName)
+%             Parent.Shapes.Range(GroupName(:)).UnGroup
+%         end
+%         
+        function NewGroup = GroupObjects(obj, Objects, GroupName)
+            NewGroup = Objects{1}.Parent.Shapes.Range(obj.GetObjectsNames(Objects)).Group;
+            NewGroup.name = GroupName;
+        end
+        
+        
+        function Names = GetObjectsNames(obj,Objects)
+           Names = cell(numel(Objects),1);
+           for i=1:numel(Objects)
+              Names{i,1} = Objects{i}.name; 
+           end
+        end
+        
         
         
         function Delete(obj, Objects)

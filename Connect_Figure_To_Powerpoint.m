@@ -1,5 +1,5 @@
 function Connect_Figure_To_Powerpoint()
-set(groot,'defaultfigureWindowKeyPressFcn',@(a,b)Update_Powerpoint_Figure(a.Number,b))
+set(groot,'defaultfigureWindowKeyPressFcn',@(a,b)Update_Powerpoint_Figure(a,b))
 
 % handles=findall(0,'type','figure');
 % for i=1:numel(handles)
