@@ -30,7 +30,7 @@ classdef Powerpoint_Tunnel < handle
             obj.IsFrameGroup = obj.IsGroup(obj.Frame);
             [~,Names] = obj.GetAllShapes(obj.Slide);
             obj.FrameAux = obj.FindPrefix(Names,['@',obj.name]);
-            obj.SizeFactor = 1;
+            obj.SizeFactor = 2;
             obj.mresolution = 2;
             obj.Options = struct(...
                 'Line',struct('Color',[0,0,0],'Weight',1) ...
@@ -125,7 +125,12 @@ Backup_List.Fx = Backup_List_Fx;
             obj.Fx.Position(1) = obj.Fx.Position(1)  - (new_width - obj.Fx.Position(3));
             obj.Fx.Position(4) = new_height;
             obj.Fx.Position(3) = new_width;
+            
+
+
             drawnow;
+% obj.Ax.OuterPosition=[0.05,0.05,0.9,0.9];
+drawnow
             if(abs(obj.Fx.Position(3)-new_width)>1e-3 || abs(obj.Fx.Position(4)-new_height)>1e-3)
                 warning('The figure scaled is too small\large. change scaling by: Fx=gcf;Fx.UserData.Scale=#');
             end

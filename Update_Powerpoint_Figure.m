@@ -23,7 +23,7 @@ if (strcmp(b.Key,'p') && ~isempty(b.Modifier) && sum(strcmp(b.Modifier,'alt')))
         end
         Fig.GroupAll(['@',Fig.name]);
     else
-%         Update_Single_Powerpoint_Figure(fig_number);
+%         Update_Single_Powerpoint_Figure(fig_obj.Number);
         Fig = Powerpoint_Tunnel(fig_obj.Children(end));
         Fig.Resize;
         Fig.GeneratePNG;
