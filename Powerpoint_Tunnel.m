@@ -26,9 +26,13 @@ classdef Powerpoint_Tunnel < handle
             obj.Ax = Ax;
             obj.Refresh;
             obj.name = ['figure',num2str(obj.Fx.Number)];
-            [obj.Frame, obj.Slide] = obj.Find_pp_Frame(obj.name);
+            obj.Frame = obj.Find_pp_Frame(obj.name);
+            if(isempty(obj.Frame))
+                obj.Frame = obj.Find_pp_Frame([obj.name ,'_Ax']);
+            end
+            obj.Slide = obj.Frame.Parent;
             obj.IsFrameGroup = obj.IsGroup(obj.Frame);
-            [~,Names] = obj.GetAllShapes(obj.Slide);
+            [~,Names] = obj.GetAllShapes(obj.Slide.Shapes);
             obj.FrameAux = obj.FindPrefix(Names,['@',obj.name]);
             obj.SizeFactor = 2;
             obj.mresolution = 2;
@@ -55,7 +59,7 @@ classdef Powerpoint_Tunnel < handle
         end
         
         
-        function [Frame,Slide] = Find_pp_Frame(obj,name)
+        function [Frame,Slide] = Find_pp_Frame(obj ,name)
             Frame_cell = Obj_From_Placeholder(name,obj.MatlabPPT);
             if(numel(Frame_cell)>0)
                 Frame = Frame_cell{1};
@@ -119,22 +123,34 @@ Backup_List.Fx = Backup_List_Fx;
         
         
         function Resize(obj)
+            Figure = obj.Fx;
+            
             new_height = obj.Frame.Height*obj.SizeFactor;
             new_width = obj.Frame.Width.*obj.SizeFactor;
-            obj.Fx.Position(2) = obj.Fx.Position(2)  - (new_height - obj.Fx.Position(4));
-            obj.Fx.Position(1) = obj.Fx.Position(1)  - (new_width - obj.Fx.Position(3));
+            
+            if(~isempty(obj.GetSuffix(obj.Frame.name)) &&  strcmp(obj.GetSuffix(obj.Frame.name),'Ax') )
+                new_width = new_width ./ obj.Ax.Position(3);
+                new_height = new_height ./ obj.Ax.Position(4);
+            end
+            
+            obj.Fx.Position(2) = Figure.Position(2)  - (new_height - Figure.Position(4));
+            obj.Fx.Position(1) = Figure.Position(1)  - (new_width - Figure.Position(3));
             obj.Fx.Position(4) = new_height;
             obj.Fx.Position(3) = new_width;
             
 
 
             drawnow;
+
 % obj.Ax.OuterPosition=[0.05,0.05,0.9,0.9];
 drawnow
             if(abs(obj.Fx.Position(3)-new_width)>1e-3 || abs(obj.Fx.Position(4)-new_height)>1e-3)
+
                 warning('The figure scaled is too small\large. change scaling by: Fx=gcf;Fx.UserData.Scale=#');
             end
         end
+        
+        
         
         
         function GeneratePNG(obj)
@@ -345,13 +361,13 @@ drawnow
             Depth = @(Names)cellfun(@(X)sum(X == '_'),Names);
             
             %Reindex Slide:
-            [Objects,Names] = obj.GetAllShapes(obj.Slide);
+            [Objects,Names] = obj.GetAllShapes(obj.Slide.Shapes);
             Names = obj.FindPrefix(Names,Prefix);%['@',obj.name]
 
             while(1)
                 [MaxDepth,ind] = max(Depth(Names));
                 if(MaxDepth == 0);return;end
-                NewGroup = RemoveStage(Names{ind});
+                NewGroup = obj.RemoveStage(Names{ind});
                 NewGroupNames = obj.FindPrefix(Names, NewGroup);
                 
                 obj.GroupByName(obj.Slide, NewGroupNames, NewGroup)
@@ -360,11 +376,19 @@ drawnow
             end
             
             
-            function Cut_Name = RemoveStage(Name)
+
+            
+        end
+        function Cut_Name = RemoveStage(obj, Name)
                All_Split = strfind(Name,'_');
                Cut_Name = Name(1:(All_Split(end)-1));
             end
-            
+        %Tools
+        
+        function Suffix = GetSuffix(obj, Name)
+               All_Split = strfind(Name,'_');
+               if(isempty(All_Split));Suffix = '';return;end
+               Suffix = Name((All_Split(end)+1):end);
         end
         
         function out = IsGroup(obj,Object)
@@ -376,7 +400,7 @@ drawnow
            end
         end
         
-        function OutNames = FindPrefix(~,Names, prefix)
+        function OutNames = FindPrefix(~, Names, prefix)
                 OutNames={};
                 for j = 1:numel(Names)
                     Name = Names{j};
@@ -386,15 +410,16 @@ drawnow
                     end
                 end
             end
-        function [Objects, Names] = GetAllShapes(~, Parent)
+        function [Objects, Names] = GetAllShapes(~, Shapes)
              Objects = {};Names={};
-             for i = 1:Parent.Shapes.Count
-                 Objects{i} = Parent.Shapes.Item(i);
+             for i = 1:Shapes.Count
+                 Objects{i} = Shapes.Item(i);
                  Names{i} = Objects{i}.name;
              end
         end
         
-        function NewGroup = GroupByName(~, Parent ,Names, GroupName)
+        function NewGroup = GroupByName(obj, Parent ,Names, GroupName)
+            if(isempty(GroupName));GroupName = obj.RemoveStage(Names{1});end
             if( numel(Names) > 1 )
                 NewGroup = Parent.Shapes.Range(Names(:)).Group;
                 NewGroup.name = GroupName;
