@@ -20,7 +20,18 @@ classdef Powerpoint_Tunnel < handle
     methods
         
         
-        function obj = Powerpoint_Tunnel(Ax)
+        function obj = Powerpoint_Tunnel(Ax,Options)
+            if(~exist('Options'))
+                obj.Options = struct(...
+                'Line',struct('Color',[0,0,0],'Weight',1) ...
+                ,'Box',struct('Color',[0,0,0],'Weight',3) ...
+                ,'Text',struct('Color',[0,0,0],'FontSize',24,'FontName','Times New Roman') ...
+                ,'Ticks',struct('Color',[0,0,0],'Weight',2.25,'Length',6) ...
+                ,'Grid',struct('Color',[0.5,0.5,0.5],'Weight',0.5)...;
+                );
+            else
+                obj.Options = Options;
+            end
             obj.Path = pwd;
             obj.Fx = Ax.Parent;
             obj.Ax = Ax;
@@ -36,13 +47,7 @@ classdef Powerpoint_Tunnel < handle
             obj.FrameAux = obj.FindPrefix(Names,['@',obj.name]);
             obj.SizeFactor = 2;
             obj.mresolution = 2;
-            obj.Options = struct(...
-                'Line',struct('Color',[0,0,0],'Weight',1) ...
-                ,'Box',struct('Color',[0,0,0],'Weight',3) ...
-                ,'Text',struct('Color',[0,0,0],'FontSize',24,'FontName','Times New Roman') ...
-                ,'Ticks',struct('Color',[0.5,0.5,0.5],'Weight',3,'Length',12) ...
-                ,'Grid',struct('Color',[0.5,0.5,0.5],'Weight',1) ...
-                );
+            
             obj.Hiden_Objects={};
         end
         
@@ -53,9 +58,9 @@ classdef Powerpoint_Tunnel < handle
         
         
         function InjectFigure(obj)
-           obj.Resize;
-           obj.GeneratePNG;
-           obj.InjectPNG;
+            obj.Resize;
+            obj.GeneratePNG;
+            obj.InjectPNG;
         end
         
         
@@ -71,10 +76,10 @@ classdef Powerpoint_Tunnel < handle
         
         
         function BackupFigure(obj,Backup_List_Ax,Backup_List_Fx,Index)
-%             Backup_List.Ax = {'color','Position','YGrid','XGrid'};
-%             Backup_List.Fx = {};
-Backup_List.Ax = Backup_List_Ax;
-Backup_List.Fx = Backup_List_Fx;
+            %             Backup_List.Ax = {'color','Position','YGrid','XGrid'};
+            %             Backup_List.Fx = {};
+            Backup_List.Ax = Backup_List_Ax;
+            Backup_List.Fx = Backup_List_Fx;
             names = {'Ax','Fx'};
             for j=1:numel(names)
                 obj.(names{j}).UserData.Backup{Index} = struct();
@@ -102,23 +107,23 @@ Backup_List.Fx = Backup_List_Fx;
         function RestorePosition(obj)
             set(obj.Ax,'Position',...
                 obj.Ax.UserData.Backup.Position);
-
+            
         end
         
         
         function Hide(obj,Object)
-           Position = obj.Ax.Position;
-           Object.Visible = 'off';
-           obj.Ax.Position = Position;
-           obj.Hiden_Objects {end+1} = Object;
+            Position = obj.Ax.Position;
+            Object.Visible = 'off';
+            obj.Ax.Position = Position;
+            obj.Hiden_Objects {end+1} = Object;
         end
         
         
         function UnHide(obj)
-           for i=1:numel(obj.Hiden_Objects)
-              obj.Hiden_Objects{i}.Visible = 'on';
-           end
-           obj.Hiden_Objects = {};
+            for i=1:numel(obj.Hiden_Objects)
+                obj.Hiden_Objects{i}.Visible = 'on';
+            end
+            obj.Hiden_Objects = {};
         end
         
         
@@ -138,14 +143,14 @@ Backup_List.Fx = Backup_List_Fx;
             obj.Fx.Position(4) = new_height;
             obj.Fx.Position(3) = new_width;
             
-
-
+            
+            
             drawnow;
-
-% obj.Ax.OuterPosition=[0.05,0.05,0.9,0.9];
-drawnow
+            
+            % obj.Ax.OuterPosition=[0.05,0.05,0.9,0.9];
+            drawnow
             if(abs(obj.Fx.Position(3)-new_width)>1e-3 || abs(obj.Fx.Position(4)-new_height)>1e-3)
-
+                
                 warning('The figure scaled is too small\large. change scaling by: Fx=gcf;Fx.UserData.Scale=#');
             end
         end
@@ -157,7 +162,7 @@ drawnow
             Color = obj.Ax.Color;
             set(obj.Ax,'color','none');
             export_fig(obj.Fx,[obj.Path,'temp.png'],'-nocrop','-dpng',['-m',num2str(obj.mresolution)],'-transparent');
-%             obj.RestoreFigure;
+            %             obj.RestoreFigure;
             set(obj.Ax,'color',Color);
         end
         
@@ -188,20 +193,30 @@ drawnow
             obj.Frame=Image;
         end
         
+        function Rectangle = DrawRectangle(obj,x1,y1,x2,y2,Options)
+%             X2_Moved = obj.Ax2PP_x(x2);Y2_Moved = obj.Ax2PP_y(y2);
+            Rectangle = obj.Slide.Shapes.AddShape('msoshaperectangle',obj.Ax2PP_x(x1),obj.Ax2PP_y(y1),obj.Ax2PP_x(x2)-obj.Ax2PP_x(x1),obj.Ax2PP_y(y2)-obj.Ax2PP_y(y1));
+            try
+                Rectangle.Line.Weight=Options.Weight;
+                Rectangle.Line.ForeColor.RGB = RGB_int(Options.Color);
+            end
+            Rectangle.Fill.ForeColor.SchemeColor = 'ppBackground';
+        end
+        
         
         function Line = DrawLine(obj,x1,y1,x2,y2,Options,Offset)
-           X2_Moved = obj.Ax2PP_x(x2);Y2_Moved = obj.Ax2PP_y(y2);
-           if(exist('Offset','var'));X2_Moved=X2_Moved+Offset(1);Y2_Moved=Y2_Moved+Offset(2);end
-           Line = obj.Slide.Shapes.AddLine(...
-               obj.Ax2PP_x(x1),obj.Ax2PP_y(y1),...
-               X2_Moved,Y2_Moved);
-           if(~exist('Options','var'));Options = obj.Options.Line;end
-           
-               Line.Line.Weight = Options.Weight;
-               Line.Line.ForeColor.RGB = RGB_int(Options.Color);
-
-           obj.Slide.invoke;
-           
+            X2_Moved = obj.Ax2PP_x(x2);Y2_Moved = obj.Ax2PP_y(y2);
+            if(exist('Offset','var'));X2_Moved=X2_Moved+Offset(1);Y2_Moved=Y2_Moved+Offset(2);end
+            Line = obj.Slide.Shapes.AddLine(...
+                obj.Ax2PP_x(x1),obj.Ax2PP_y(y1),...
+                X2_Moved,Y2_Moved);
+            if(~exist('Options','var'));Options = obj.Options.Line;end
+            
+            Line.Line.Weight = Options.Weight;
+            Line.Line.ForeColor.RGB = RGB_int(Options.Color);
+            
+            obj.Slide.invoke;
+            
         end
         
         
@@ -210,9 +225,9 @@ drawnow
             for i=1:numel(obj.Ax.Children)
                 Object = obj.Ax.Children(i);
                 if(isa(Object,'matlab.graphics.chart.primitive.Line'))
-                    Curves{i} = DrawCurve(obj, Object);
+                    Curves{i} = DrawCurve(obj, Object,xlim(obj.Ax),ylim(obj.Ax));
                     Curves{i}.Line.ForeColor.RGB = RGB_int(Object.Color);
-                    Curves{i}.Line.Weight = Object.LineWidth*1.5;
+                    Curves{i}.Line.Weight = Object.LineWidth;%*1.5;
                     Curves{i}.name = ['@', obj.name, '_Data_', num2str(i)];
                     obj.Hide(Object);
                     
@@ -221,27 +236,34 @@ drawnow
         end
         
         
-        function OutputCurve = DrawCurve(obj, LineObj)
-            Curve=obj.Slide.Shapes.BuildFreeform('msoEditingCorner',obj.Ax2PP_x(LineObj.XData(1)),obj.Ax2PP_y(LineObj.YData(1)) );
-            for i=2:numel(LineObj.XData)
+        function OutputCurve = DrawCurve(obj, LineObj, Xlim, Ylim)
+            if(~exist('Xlim'));Xlim=[-inf,inf];end
+            if(~exist('Ylim'));Ylim=[-inf,inf];end
+            IND=1;
+            while((LineObj.XData(IND)<Xlim(1)) || (LineObj.YData(IND)>Ylim(2)) || (LineObj.YData(IND)<Ylim(1)))
+                IND=IND+1;
+            end
+            Curve=obj.Slide.Shapes.BuildFreeform('msoEditingCorner',obj.Ax2PP_x(LineObj.XData(IND)),obj.Ax2PP_y(LineObj.YData(IND)) );
+            for i=(IND+1):numel(LineObj.XData)
+                if((LineObj.XData(i)>Xlim(2)) || (LineObj.YData(i)>Ylim(2)) || (LineObj.YData(i)<Ylim(1)));break;end
                 Curve.AddNodes('msoSegmentCurve','msoEditingCorner',obj.Ax2PP_x(LineObj.XData(i)),obj.Ax2PP_y(LineObj.YData(i)));
             end
             Curve.ConvertToShape;
             obj.Slide.invoke;
             OutputCurve = obj.Slide.Shapes.Item(obj.Slide.Shapes.Count);
-%             figure1.MatlabPPT{21,2}.Line.ForeColor.RGB=1
+            %             figure1.MatlabPPT{21,2}.Line.ForeColor.RGB=1
         end
         
         
         function TextBox = DrawText(obj, Text, x, y, Options)
             if(~exist('Options','var'));Options = obj.Options.Text;end
             TextBox = obj.Slide.Shapes.AddTextbox(1, 0, 0, 100, 100);
-
+            
             TextBox.TextFrame.TextRange.Text = Text;
             TextBox.TextFrame.TextRange.Font.Name = Options.FontName;
             TextBox.TextFrame.TextRange.Font.Size = Options.FontSize;
             TextBox.Rotation = Options.Rotation;
-            TextBox.TextFrame.TextRange.Font.Color.RGB = RGB_int(Options.Color ); 
+            TextBox.TextFrame.TextRange.Font.Color.RGB = RGB_int(Options.Color );
             if(isfield(Options,'Alignment'))
                 TextBox.TextFrame.TextRange.ParagraphFormat.Alignment = Options.Alignment;
             else
@@ -288,14 +310,20 @@ drawnow
             Ylim=ylim(obj.Ax);
             Xlim=xlim(obj.Ax);
             TickValues={};
-
+            
             Object = obj.Ax.XAxis;
             for i=1:numel(Object.TickValues)
                 Pos = [Object.TickValues(i),Ylim(1)];Text = [' ',Object.TickLabels{i},' '];
+                
                 TickValues{end+1} = obj.DrawText(Text, ...
                     Pos(1),...
                     Pos(2),...
                     struct('FontSize',Object.FontSize*1.5,'Color',Object.Color,'FontName',Object.FontName,'Rotation',0) );
+%                     TickValues{end+1} = obj.DrawText(Text, ...
+%                     Pos(1),...
+%                     Pos(2),...
+%                     struct('FontSize',obj.Options.Text.FontSize*1.5,'Color',obj.Options.Text.Color,'FontName',obj.Options.Text.FontName,'Rotation',0) );
+                
                 TickValues{end}.name = ['@', obj.name,'_Axes_XTickValues_',num2str(i)];
                 TickValues{end}.Top = TickValues{end}.Top + TickValues{end}.TextFrame.TextRange.Font.Size/1.5;
             end
@@ -308,8 +336,8 @@ drawnow
                     Pos(1),...
                     Pos(2),...
                     struct('FontSize',Object.FontSize*1.5,'Color',Object.Color,'FontName',Object.FontName,'Rotation',0, ...
-                'Alignment','ppAlignRight') );
-            
+                    'Alignment','ppAlignRight') );
+                
                 TickValues{end}.name = ['@', obj.name,'_Axes_YTickValues_',num2str(i)];
                 TickValues{end}.Left = TickValues{end}.Left - TickValues{end}.Width/2;
             end
@@ -318,42 +346,48 @@ drawnow
         
         
         function [Box,Ticks,Grid] = DrawBox(obj)
-           Xlim = xlim(obj.Ax);Ylim = ylim(obj.Ax);
-           Xlist = Xlim ([1,2,2,1,1]);
-           Ylist = Ylim ([1,1,2,2,1]);
-           Box = {};Ticks={};Grid={};
+            Xlim = xlim(obj.Ax);Ylim = ylim(obj.Ax);
+            Xlist = Xlim ([1,2,2,1,1]);
+            Ylist = Ylim ([1,1,2,2,1]);
+            Box = {};Ticks={};Grid={};
+            Box{5} = DrawRectangle(obj,min(Xlist),max(Ylist),max(Xlist),min(Ylist),obj.Options.Box);
+            Box{5}.name = ['@', obj.name, '_Axes_Box_Rect'];
+            for x = obj.Ax.XAxis.TickValues
+%                 if(strcmp(obj.Ax.XGrid,'on'))
+%                     Grid{end+1} = obj.DrawLine((x),(Ylim(1)),(x),(Ylim(2)),obj.Options.Grid);
+%                 end
+                Ticks{end+1} = obj.DrawLine((x),(Ylim(1)),(x),(Ylim(1)),obj.Options.Ticks,[0,-obj.Options.Ticks.Length]);
+                Ticks{end+1} = obj.DrawLine((x),(Ylim(2)),(x),(Ylim(2)),obj.Options.Ticks,[0,obj.Options.Ticks.Length]);
+                
+            end
+            for y = obj.Ax.YAxis.TickValues
+%                 if(strcmp(obj.Ax.YGrid,'on'))
+%                     Grid{end+1} = obj.DrawLine((Xlim(1)),(y),(Xlim(2)),(y),obj.Options.Grid);
+%                 end
+                Ticks{end+1} = obj.DrawLine((Xlim(1)),(y),(Xlim(1)),(y),obj.Options.Ticks,[obj.Options.Ticks.Length,0]);
+                Ticks{end+1} = obj.DrawLine((Xlim(2)),(y),(Xlim(2)),(y),obj.Options.Ticks,[-obj.Options.Ticks.Length,0]);
+                
+            end
             
-           for x = obj.Ax.XAxis.TickValues
-               Ticks{end+1} = obj.DrawLine((x),(Ylim(1)),(x),(Ylim(1)),obj.Options.Ticks,[0,-obj.Options.Ticks.Length]);
-               Ticks{end+1} = obj.DrawLine((x),(Ylim(2)),(x),(Ylim(2)),obj.Options.Ticks,[0,obj.Options.Ticks.Length]);
-               if(strcmp(obj.Ax.XGrid,'on'))
-                   Grid{end+1} = obj.DrawLine((x),(Ylim(1)),(x),(Ylim(2)),obj.Options.Grid);
-               end
-           end
-           for y = obj.Ax.YAxis.TickValues
-               Ticks{end+1} = obj.DrawLine((Xlim(1)),(y),(Xlim(1)),(y),obj.Options.Ticks,[obj.Options.Ticks.Length,0]);
-               Ticks{end+1} = obj.DrawLine((Xlim(2)),(y),(Xlim(2)),(y),obj.Options.Ticks,[-obj.Options.Ticks.Length,0]);
-               if(strcmp(obj.Ax.YGrid,'on'))
-                   Grid{end+1} = obj.DrawLine((Xlim(1)),(y),(Xlim(2)),(y),obj.Options.Grid);
-               end
-           end
-           
-           for i=1:4
-               Box{i} = obj.DrawLine(Xlist(i),Ylist(i),Xlist(i+1),Ylist(i+1),obj.Options.Box);
-               Box{i}.name = ['@', obj.name, '_Axes_Box_Line_', num2str(i)];
-           end
-
-           for i=1:numel(Ticks)
-              Ticks{i}.name = ['@', obj.name, '_Axes_Box_Tick_', num2str(i)]; 
-           end
-           
-           for i=1:numel(Grid)
-              Grid{i}.name = ['@', obj.name, '_Axes_Box_Grid_', num2str(i)]; 
-           end
-
-           if(strcmp(obj.Ax.XGrid,'on'));obj.Ax.XGrid='off';end
-           if(strcmp(obj.Ax.YGrid,'on'));obj.Ax.YGrid='off';end
-           
+%             for i=1:4
+%                 Box{i} = obj.DrawLine(Xlist(i),Ylist(i),Xlist(i+1),Ylist(i+1),obj.Options.Box);
+%                 Box{i}.name = ['@', obj.name, '_Axes_Box_Line_', num2str(i)];
+%             end
+            
+            
+            for i=1:numel(Ticks)
+                Ticks{i}.name = ['@', obj.name, '_Axes_Box_Tick_', num2str(i)];
+            end
+            
+            
+            for i=1:numel(Grid)
+                Grid{i}.name = ['@', obj.name, '_Axes_Box_Grid_', num2str(i)];
+            end
+            
+            
+            if(strcmp(obj.Ax.XGrid,'on'));obj.Ax.XGrid='off';end
+            if(strcmp(obj.Ax.YGrid,'on'));obj.Ax.YGrid='off';end
+            
         end
         
         
@@ -363,7 +397,7 @@ drawnow
             %Reindex Slide:
             [Objects,Names] = obj.GetAllShapes(obj.Slide.Shapes);
             Names = obj.FindPrefix(Names,Prefix);%['@',obj.name]
-
+            
             while(1)
                 [MaxDepth,ind] = max(Depth(Names));
                 if(MaxDepth == 0);return;end
@@ -376,46 +410,46 @@ drawnow
             end
             
             
-
+            
             
         end
         function Cut_Name = RemoveStage(obj, Name)
-               All_Split = strfind(Name,'_');
-               Cut_Name = Name(1:(All_Split(end)-1));
-            end
+            All_Split = strfind(Name,'_');
+            Cut_Name = Name(1:(All_Split(end)-1));
+        end
         %Tools
         
         function Suffix = GetSuffix(obj, Name)
-               All_Split = strfind(Name,'_');
-               if(isempty(All_Split));Suffix = '';return;end
-               Suffix = Name((All_Split(end)+1):end);
+            All_Split = strfind(Name,'_');
+            if(isempty(All_Split));Suffix = '';return;end
+            Suffix = Name((All_Split(end)+1):end);
         end
         
         function out = IsGroup(obj,Object)
-           try
-               Object.GroupItems;
-               out = 1;
-           catch
-               out = 0;
-           end
+            try
+                Object.GroupItems;
+                out = 1;
+            catch
+                out = 0;
+            end
         end
         
         function OutNames = FindPrefix(~, Names, prefix)
-                OutNames={};
-                for j = 1:numel(Names)
-                    Name = Names{j};
-                    Find = strfind(Name,prefix);
-                    if ((numel(Find)==1) && Find ==1)
-                        OutNames{end+1} = Name;
-                    end
+            OutNames={};
+            for j = 1:numel(Names)
+                Name = Names{j};
+                Find = strfind(Name,prefix);
+                if ((numel(Find)==1) && Find ==1)
+                    OutNames{end+1} = Name;
                 end
             end
+        end
         function [Objects, Names] = GetAllShapes(~, Shapes)
-             Objects = {};Names={};
-             for i = 1:Shapes.Count
-                 Objects{i} = Shapes.Item(i);
-                 Names{i} = Objects{i}.name;
-             end
+            Objects = {};Names={};
+            for i = 1:Shapes.Count
+                Objects{i} = Shapes.Item(i);
+                Names{i} = Objects{i}.name;
+            end
         end
         
         function NewGroup = GroupByName(obj, Parent ,Names, GroupName)
@@ -427,11 +461,11 @@ drawnow
                 Parent.Shapes.Range(Names(:)).name = GroupName;
             end
         end
-%         
-%         function Ungroup(~, Parent, GroupName)
-%             Parent.Shapes.Range(GroupName(:)).UnGroup
-%         end
-%         
+        %
+        %         function Ungroup(~, Parent, GroupName)
+        %             Parent.Shapes.Range(GroupName(:)).UnGroup
+        %         end
+        %
         function NewGroup = GroupObjects(obj, Objects, GroupName)
             NewGroup = Objects{1}.Parent.Shapes.Range(obj.GetObjectsNames(Objects)).Group;
             NewGroup.name = GroupName;
@@ -439,19 +473,19 @@ drawnow
         
         
         function Names = GetObjectsNames(obj,Objects)
-           Names = cell(numel(Objects),1);
-           for i=1:numel(Objects)
-              Names{i,1} = Objects{i}.name; 
-           end
+            Names = cell(numel(Objects),1);
+            for i=1:numel(Objects)
+                Names{i,1} = Objects{i}.name;
+            end
         end
         
         
         
         function Delete(obj, Objects)
             if(iscell(Objects))
-               for i = 1:numel(Objects)
-                  obj.Delete(Objects{i}); 
-               end
+                for i = 1:numel(Objects)
+                    obj.Delete(Objects{i});
+                end
             else
                 Objects.delete;
             end
