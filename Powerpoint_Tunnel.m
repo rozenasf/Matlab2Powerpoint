@@ -223,7 +223,7 @@ classdef Powerpoint_Tunnel < handle
         function Curves = DrawAllCurves(obj)
             Curves = {};
             for i=1:numel(obj.Ax.Children)
-                Object = obj.Ax.Children(i);
+                Object = obj.Ax.Children(numel(obj.Ax.Children)-i+1);
                 if(isa(Object,'matlab.graphics.chart.primitive.Line'))
                     Curves{i} = DrawCurve(obj, Object,xlim(obj.Ax),ylim(obj.Ax));
                     Curves{i}.Line.ForeColor.RGB = RGB_int(Object.Color);
@@ -243,9 +243,45 @@ classdef Powerpoint_Tunnel < handle
             while((LineObj.XData(IND)<Xlim(1)) || (LineObj.YData(IND)>Ylim(2)) || (LineObj.YData(IND)<Ylim(1)))
                 IND=IND+1;
             end
-            Curve=obj.Slide.Shapes.BuildFreeform('msoEditingCorner',obj.Ax2PP_x(LineObj.XData(IND)),obj.Ax2PP_y(LineObj.YData(IND)) );
+            if(IND==1)
+                Curve=obj.Slide.Shapes.BuildFreeform('msoEditingCorner',obj.Ax2PP_x(LineObj.XData(IND)),obj.Ax2PP_y(LineObj.YData(IND)) );
+            else
+                i=IND;
+                FFF=polyfit(LineObj.XData((i-1):i),LineObj.YData((i-1):i),1);
+                    YCollOnX = polyval(FFF,Xlim(1));
+
+                    if(YCollOnX>Ylim(1))
+                        FFF=polyfit(LineObj.YData((i-1):i),LineObj.XData((i-1):i),1);
+                        XCollOnY1 = (polyval(FFF,Ylim(2)));
+                        Curve=obj.Slide.Shapes.BuildFreeform('msoEditingCorner',obj.Ax2PP_x(XCollOnY1),obj.Ax2PP_y(Ylim(2)));
+                    elseif(YCollOnX<Ylim(1))
+                        FFF=polyfit(LineObj.YData((i-1):i),LineObj.XData((i-1):i),1);
+                        XCollOnY2 = (polyval(FFF,Ylim(1)));
+                         Curve=obj.Slide.Shapes.BuildFreeform('msoEditingCorner',obj.Ax2PP_x(XCollOnY2),obj.Ax2PP_y(Ylim(1)));
+                    else
+                    Curve=obj.Slide.Shapes.BuildFreeform('msoEditingCorner',obj.Ax2PP_x(Xlim(2)),obj.Ax2PP_y(YCollOnX));
+                    end
+                
+            end
+            
             for i=(IND+1):numel(LineObj.XData)
-                if((LineObj.XData(i)>Xlim(2)) || (LineObj.YData(i)>Ylim(2)) || (LineObj.YData(i)<Ylim(1)));break;end
+                if((LineObj.XData(i)>Xlim(2)) || (LineObj.YData(i)>Ylim(2)) || (LineObj.YData(i)<Ylim(1)))
+                    FFF=polyfit(LineObj.XData((i-1):i),LineObj.YData((i-1):i),1);
+                    YCollOnX = polyval(FFF,Xlim(2));
+
+                    if(YCollOnX>Ylim(2))
+                        FFF=polyfit(LineObj.YData((i-1):i),LineObj.XData((i-1):i),1);
+                        XCollOnY1 = (polyval(FFF,Ylim(2)));
+                        Curve.AddNodes('msoSegmentCurve','msoEditingCorner',obj.Ax2PP_x(XCollOnY1),obj.Ax2PP_y(Ylim(2)));
+                    elseif(YCollOnX<Ylim(1))
+                        FFF=polyfit(LineObj.YData((i-1):i),LineObj.XData((i-1):i),1);
+                        XCollOnY2 = (polyval(FFF,Ylim(1)));
+                         Curve.AddNodes('msoSegmentCurve','msoEditingCorner',obj.Ax2PP_x(XCollOnY2),obj.Ax2PP_y(Ylim(1)));
+                    else
+                    Curve.AddNodes('msoSegmentCurve','msoEditingCorner',obj.Ax2PP_x(Xlim(2)),obj.Ax2PP_y(YCollOnX));
+                    end
+                    break;
+                end
                 Curve.AddNodes('msoSegmentCurve','msoEditingCorner',obj.Ax2PP_x(LineObj.XData(i)),obj.Ax2PP_y(LineObj.YData(i)));
             end
             Curve.ConvertToShape;
@@ -315,14 +351,14 @@ classdef Powerpoint_Tunnel < handle
             for i=1:numel(Object.TickValues)
                 Pos = [Object.TickValues(i),Ylim(1)];Text = [' ',Object.TickLabels{i},' '];
                 
-                TickValues{end+1} = obj.DrawText(Text, ...
-                    Pos(1),...
-                    Pos(2),...
-                    struct('FontSize',Object.FontSize*1.5,'Color',Object.Color,'FontName',Object.FontName,'Rotation',0) );
-%                     TickValues{end+1} = obj.DrawText(Text, ...
+%                 TickValues{end+1} = obj.DrawText(Text, ...
 %                     Pos(1),...
 %                     Pos(2),...
-%                     struct('FontSize',obj.Options.Text.FontSize*1.5,'Color',obj.Options.Text.Color,'FontName',obj.Options.Text.FontName,'Rotation',0) );
+%                     struct('FontSize',Object.FontSize*1.5,'Color',Object.Color,'FontName',Object.FontName,'Rotation',0) );
+                    TickValues{end+1} = obj.DrawText(Text, ...
+                    Pos(1),...
+                    Pos(2),...
+                    struct('FontSize',obj.Options.Text.FontSize,'Color',obj.Options.Text.Color,'FontName',obj.Options.Text.FontName,'Rotation',0) );
                 
                 TickValues{end}.name = ['@', obj.name,'_Axes_XTickValues_',num2str(i)];
                 TickValues{end}.Top = TickValues{end}.Top + TickValues{end}.TextFrame.TextRange.Font.Size/1.5;
@@ -332,19 +368,33 @@ classdef Powerpoint_Tunnel < handle
             Object = obj.Ax.YAxis;
             for i=1:numel(Object.TickValues)
                 Pos = [Xlim(1),Object.TickValues(i)];Text = [' ',Object.TickLabels{i},' '];
-                TickValues{end+1} = obj.DrawText(Text, ...
+%                 TickValues{end+1} = obj.DrawText(Text, ...
+%                     Pos(1),...
+%                     Pos(2),...
+%                     struct('FontSize',Object.FontSize*1.5,'Color',Object.Color,'FontName',Object.FontName,'Rotation',0, ...
+%                     'Alignment','ppAlignRight') );
+TickValues{end+1} = obj.DrawText(Text, ...
                     Pos(1),...
                     Pos(2),...
-                    struct('FontSize',Object.FontSize*1.5,'Color',Object.Color,'FontName',Object.FontName,'Rotation',0, ...
+                    struct('FontSize',obj.Options.Text.FontSize,'Color',obj.Options.Text.Color,'FontName',obj.Options.Text.FontName,'Rotation',0, ...
                     'Alignment','ppAlignRight') );
-                
                 TickValues{end}.name = ['@', obj.name,'_Axes_YTickValues_',num2str(i)];
                 TickValues{end}.Left = TickValues{end}.Left - TickValues{end}.Width/2;
             end
             obj.Hide(Object);
         end
         
-        
+        function DrawBoundingLines(obj)
+            Xlim = xlim(obj.Ax);Ylim = ylim(obj.Ax);
+            Xlist = Xlim ([1,2,2,1,1]);
+            Ylist = Ylim ([1,1,2,2,1]);
+            Box={};
+            for i=1:4
+                Box{i} = obj.DrawLine(Xlist(i),Ylist(i),Xlist(i+1),Ylist(i+1),obj.Options.Box);
+                Box{i}.name = ['@', obj.name, '_Shadow_', num2str(i)];
+            end
+ 
+        end
         function [Box,Ticks,Grid] = DrawBox(obj)
             Xlim = xlim(obj.Ax);Ylim = ylim(obj.Ax);
             Xlist = Xlim ([1,2,2,1,1]);
@@ -353,22 +403,28 @@ classdef Powerpoint_Tunnel < handle
             Box{5} = DrawRectangle(obj,min(Xlist),max(Ylist),max(Xlist),min(Ylist),obj.Options.Box);
             Box{5}.name = ['@', obj.name, '_Axes_Box_Rect'];
             for x = obj.Ax.XAxis.TickValues
-%                 if(strcmp(obj.Ax.XGrid,'on'))
-%                     Grid{end+1} = obj.DrawLine((x),(Ylim(1)),(x),(Ylim(2)),obj.Options.Grid);
-%                 end
+                if(strcmp(obj.Ax.XGrid,'on'))
+                    if(~(x==Xlim(1)) && ~(x==Xlim(2)))
+                    Grid{end+1} = obj.DrawLine((x),(Ylim(1)),(x),(Ylim(2)),obj.Options.Grid);
+                    end
+                end
                 Ticks{end+1} = obj.DrawLine((x),(Ylim(1)),(x),(Ylim(1)),obj.Options.Ticks,[0,-obj.Options.Ticks.Length]);
                 Ticks{end+1} = obj.DrawLine((x),(Ylim(2)),(x),(Ylim(2)),obj.Options.Ticks,[0,obj.Options.Ticks.Length]);
                 
             end
             for y = obj.Ax.YAxis.TickValues
-%                 if(strcmp(obj.Ax.YGrid,'on'))
-%                     Grid{end+1} = obj.DrawLine((Xlim(1)),(y),(Xlim(2)),(y),obj.Options.Grid);
-%                 end
+                if(strcmp(obj.Ax.YGrid,'on'))
+                    if(~(y==Ylim(1)) && ~(y==Ylim(2)))
+                    Grid{end+1} = obj.DrawLine((Xlim(1)),(y),(Xlim(2)),(y),obj.Options.Grid);
+                    end
+                end
                 Ticks{end+1} = obj.DrawLine((Xlim(1)),(y),(Xlim(1)),(y),obj.Options.Ticks,[obj.Options.Ticks.Length,0]);
                 Ticks{end+1} = obj.DrawLine((Xlim(2)),(y),(Xlim(2)),(y),obj.Options.Ticks,[-obj.Options.Ticks.Length,0]);
                 
             end
-            
+%             Xlim = xlim(obj.Ax);Ylim = ylim(obj.Ax);
+%             Xlist = Xlim ([1,2,2,1,1]);
+%             Ylist = Ylim ([1,1,2,2,1]);
 %             for i=1:4
 %                 Box{i} = obj.DrawLine(Xlist(i),Ylist(i),Xlist(i+1),Ylist(i+1),obj.Options.Box);
 %                 Box{i}.name = ['@', obj.name, '_Axes_Box_Line_', num2str(i)];
