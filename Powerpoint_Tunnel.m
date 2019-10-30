@@ -248,41 +248,53 @@ classdef Powerpoint_Tunnel < handle
             else
                 i=IND;
                 FFF=polyfit(LineObj.XData((i-1):i),LineObj.YData((i-1):i),1);
-                    YCollOnX = polyval(FFF,Xlim(1));
-
-                    if(YCollOnX>Ylim(1))
-                        FFF=polyfit(LineObj.YData((i-1):i),LineObj.XData((i-1):i),1);
-                        XCollOnY1 = (polyval(FFF,Ylim(2)));
-                        Curve=obj.Slide.Shapes.BuildFreeform('msoEditingCorner',obj.Ax2PP_x(XCollOnY1),obj.Ax2PP_y(Ylim(2)));
-                    elseif(YCollOnX<Ylim(1))
-                        FFF=polyfit(LineObj.YData((i-1):i),LineObj.XData((i-1):i),1);
-                        XCollOnY2 = (polyval(FFF,Ylim(1)));
-                         Curve=obj.Slide.Shapes.BuildFreeform('msoEditingCorner',obj.Ax2PP_x(XCollOnY2),obj.Ax2PP_y(Ylim(1)));
-                    else
-                    Curve=obj.Slide.Shapes.BuildFreeform('msoEditingCorner',obj.Ax2PP_x(Xlim(2)),obj.Ax2PP_y(YCollOnX));
-                    end
+                YCollOnX = polyval(FFF,Xlim(1));
+                
+                if(YCollOnX>Ylim(2))
+                    FFF=polyfit(LineObj.YData((i-1):i),LineObj.XData((i-1):i),1);
+                    XCollOnY1 = (polyval(FFF,Ylim(2)));
+                    Curve=obj.Slide.Shapes.BuildFreeform('msoEditingCorner',obj.Ax2PP_x(XCollOnY1),obj.Ax2PP_y(Ylim(2)));
+                elseif(YCollOnX<Ylim(1))
+                    FFF=polyfit(LineObj.YData((i-1):i),LineObj.XData((i-1):i),1);
+                    XCollOnY2 = (polyval(FFF,Ylim(1)));
+                    Curve=obj.Slide.Shapes.BuildFreeform('msoEditingCorner',obj.Ax2PP_x(XCollOnY2),obj.Ax2PP_y(Ylim(1)));
+                else
+                    Curve=obj.Slide.Shapes.BuildFreeform('msoEditingCorner',obj.Ax2PP_x(Xlim(1)),obj.Ax2PP_y(YCollOnX));
+                end
                 
             end
             
             for i=(IND+1):numel(LineObj.XData)
-                if((LineObj.XData(i)>Xlim(2)) || (LineObj.YData(i)>Ylim(2)) || (LineObj.YData(i)<Ylim(1)))
+                X=LineObj.XData(i);Y=LineObj.YData(i);
+                if( X>Xlim(2) )
                     FFF=polyfit(LineObj.XData((i-1):i),LineObj.YData((i-1):i),1);
                     YCollOnX = polyval(FFF,Xlim(2));
-
-                    if(YCollOnX>Ylim(2))
-                        FFF=polyfit(LineObj.YData((i-1):i),LineObj.XData((i-1):i),1);
-                        XCollOnY1 = (polyval(FFF,Ylim(2)));
-                        Curve.AddNodes('msoSegmentCurve','msoEditingCorner',obj.Ax2PP_x(XCollOnY1),obj.Ax2PP_y(Ylim(2)));
-                    elseif(YCollOnX<Ylim(1))
-                        FFF=polyfit(LineObj.YData((i-1):i),LineObj.XData((i-1):i),1);
-                        XCollOnY2 = (polyval(FFF,Ylim(1)));
-                         Curve.AddNodes('msoSegmentCurve','msoEditingCorner',obj.Ax2PP_x(XCollOnY2),obj.Ax2PP_y(Ylim(1)));
-                    else
                     Curve.AddNodes('msoSegmentCurve','msoEditingCorner',obj.Ax2PP_x(Xlim(2)),obj.Ax2PP_y(YCollOnX));
-                    end
                     break;
                 end
-                Curve.AddNodes('msoSegmentCurve','msoEditingCorner',obj.Ax2PP_x(LineObj.XData(i)),obj.Ax2PP_y(LineObj.YData(i)));
+                if( Y>Ylim(2) )
+                    if((i>1 && LineObj.YData(i-1)<Ylim(2)))
+                        FFF=polyfit(LineObj.YData((i-1):i),LineObj.XData((i-1):i),1);
+                        X = polyval(FFF,Ylim(2));
+                    elseif((i<numel(LineObj.YData) && LineObj.YData(i+1)<Ylim(2)))
+                        FFF=polyfit(LineObj.YData(i:(i+1)),LineObj.XData(i:(i+1)),1);
+                        X = polyval(FFF,Ylim(2));
+                    end
+                    Y=Ylim(2);
+                end
+                if( Y<Ylim(1) )
+                    if(i>1 && LineObj.YData(i-1)>Ylim(1))
+                        FFF=polyfit(LineObj.YData((i-1):i),LineObj.XData((i-1):i),1);
+                        X = polyval(FFF,Ylim(1));
+                    elseif((i<numel(LineObj.YData) && LineObj.YData(i+1)>Ylim(1)))
+                        FFF=polyfit(LineObj.YData(i:(i+1)),LineObj.XData(i:(i+1)),1);
+                        X = polyval(FFF,Ylim(1));
+                    end
+                    Y=Ylim(1);
+                end
+
+                    Curve.AddNodes('msoSegmentCurve','msoEditingCorner',obj.Ax2PP_x(X),obj.Ax2PP_y(Y));
+                
             end
             Curve.ConvertToShape;
             obj.Slide.invoke;
