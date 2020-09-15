@@ -44,9 +44,12 @@ if(numel(varargin)>0)
                break;
            end
         end
-        legend(varargin(1:k),'Interpreter','latex','location',Location);
+        legend(varargin(1:k),'location',Location);%'Interpreter','latex',
     end
 end
 Ax=gca;Ax.FontName='Times New Roman';Ax.FontSize=16;
 Fx=gcf;Fx.Color='w';
+Ax=gca;Ax.LineWidth=2;
+Ax.YColor=[0,0,0];
+Ax.XColor=[0,0,0];
 end

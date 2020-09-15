@@ -99,6 +99,7 @@ classdef Fit_Data < handle
            end
         end
         function out=FindAllZeros(obj,F,Lim)
+            try
             out=[];
             Split=100;
             Ranges=linspace(Lim(1),Lim(2),Split);
@@ -106,6 +107,7 @@ classdef Fit_Data < handle
                 if( (sign(F(Ranges(i)))>0) ~= (sign(F(Ranges(i+1)))>0) )
                     out=[out;fzero(F,Ranges(i:i+1))];
                 end
+            end
             end
         end
         function obj=ZeroAndExtremum(obj)

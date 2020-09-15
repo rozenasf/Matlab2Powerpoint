@@ -46,7 +46,7 @@ classdef Powerpoint_Tunnel < handle
             [~,Names] = obj.GetAllShapes(obj.Slide.Shapes);
             obj.FrameAux = obj.FindPrefix(Names,['@',obj.name]);
             obj.SizeFactor = 2;
-            obj.mresolution = 2;
+            obj.mresolution = 2;%was 2
             
             obj.Hiden_Objects={};
         end
@@ -226,9 +226,11 @@ classdef Powerpoint_Tunnel < handle
                 Object = obj.Ax.Children(numel(obj.Ax.Children)-i+1);
                 if(isa(Object,'matlab.graphics.chart.primitive.Line'))
                     Curves{i} = DrawCurve(obj, Object,xlim(obj.Ax),ylim(obj.Ax));
-                    Curves{i}.Line.ForeColor.RGB = RGB_int(Object.Color);
-                    Curves{i}.Line.Weight = Object.LineWidth;%*1.5;
-                    Curves{i}.name = ['@', obj.name, '_Data_', num2str(i)];
+                    if(~isempty(Curves{i}))
+                        Curves{i}.Line.ForeColor.RGB = RGB_int(Object.Color);
+                        Curves{i}.Line.Weight = Object.LineWidth;%*1.5;
+                        Curves{i}.name = ['@', obj.name, '_Data_', num2str(i)];
+                    end
                     obj.Hide(Object);
                     
                 end
@@ -239,7 +241,28 @@ classdef Powerpoint_Tunnel < handle
         function OutputCurve = DrawCurve(obj, LineObj, Xlim, Ylim)
             if(~exist('Xlim'));Xlim=[-inf,inf];end
             if(~exist('Ylim'));Ylim=[-inf,inf];end
+            if(max(LineObj.XData) < min(Xlim) || min(LineObj.XData) > max(Xlim) || ...
+                    max(LineObj.YData) < min(Ylim) || min(LineObj.YData) > max(Ylim))
+                OutputCurve=[];
+                    return;
+            end
+            YLimCut = @(y)min([max([y,Ylim(1)]),Ylim(2)]);
+            XLimCut = @(x)min([max([x,Xlim(1)]),Xlim(2)]);
             IND=1;
+            if ( (numel(LineObj.XData)==2) && ((LineObj.XData(1)==LineObj.XData(2)) || (LineObj.YData(1)==LineObj.YData(2))) )  % probably a grid line
+                if(LineObj.XData(1)==LineObj.XData(2))
+                    Y = sort(LineObj.YData);
+                    if(Y(1) < Ylim(1));Y(1)=Ylim(1);end
+                    if(Y(2) > Ylim(2));Y(2)=Ylim(2);end
+                    LineObj.YData = Y;
+%                     LineObj.XData(1) = LineObj.XData(1) + diff(Xlim)/1e6;
+                else
+                    X = sort(LineObj.XData);
+                    if(X(1) < Xlim(1));X(1)=Xlim(1);end
+                    if(X(2) > Xlim(2));X(2)=Xlim(2);end
+                    LineObj.XData = X;
+                end
+            end
             while((LineObj.XData(IND)<Xlim(1)) || (LineObj.YData(IND)>Ylim(2)) || (LineObj.YData(IND)<Ylim(1)))
                 IND=IND+1;
             end
@@ -269,7 +292,7 @@ classdef Powerpoint_Tunnel < handle
                 if( X>Xlim(2) )
                     FFF=polyfit(LineObj.XData((i-1):i),LineObj.YData((i-1):i),1);
                     YCollOnX = polyval(FFF,Xlim(2));
-                    Curve.AddNodes('msoSegmentCurve','msoEditingCorner',obj.Ax2PP_x(Xlim(2)),obj.Ax2PP_y(YCollOnX));
+                    Curve.AddNodes('msoSegmentCurve','msoEditingCorner',obj.Ax2PP_x(Xlim(2)),obj.Ax2PP_y(YLimCut(YCollOnX)));
                     break;
                 end
                 if( Y>Ylim(2) )
@@ -379,6 +402,7 @@ classdef Powerpoint_Tunnel < handle
             
             Object = obj.Ax.YAxis;
             for i=1:numel(Object.TickValues)
+                if(isempty(Object.TickLabels));continue;end
                 Pos = [Xlim(1),Object.TickValues(i)];Text = [' ',Object.TickLabels{i},' '];
 %                 TickValues{end+1} = obj.DrawText(Text, ...
 %                     Pos(1),...
