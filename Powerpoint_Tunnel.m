@@ -203,6 +203,15 @@ classdef Powerpoint_Tunnel < handle
             Rectangle.Fill.ForeColor.SchemeColor = 'ppBackground';
         end
         
+        function Circle = DrawCircle(obj,x1,y1,R,Options)
+%             X2_Moved = obj.Ax2PP_x(x2);Y2_Moved = obj.Ax2PP_y(y2);
+            Circle = obj.Slide.Shapes.AddShape('msoshapecircle',obj.Ax2PP_x(x1)-R,obj.Ax2PP_y(y1)-R,2*R,2*R);
+            try
+                %Circle.Line.Weight=Options.Weight;
+                %Circle.Line.ForeColor.RGB = RGB_int(Options.Color);
+            end
+            Circle.Fill.ForeColor.SchemeColor = 'ppBackground';
+        end
         
         function Line = DrawLine(obj,x1,y1,x2,y2,Options,Offset)
             X2_Moved = obj.Ax2PP_x(x2);Y2_Moved = obj.Ax2PP_y(y2);
